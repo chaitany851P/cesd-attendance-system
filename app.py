@@ -1,41 +1,35 @@
 import pandas as pd
 import io
 import os
+import json
 from flask import Flask, render_template, request, redirect, url_for, session, send_file
 import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import datetime
-import os
-import json
-
-# --- FIREBASE INITIALIZATION ---
-firebase_config = os.getenv("FIREBASE_CONFIG")
-
-if firebase_config:
-    # This runs on Hugging Face using the Secret we will set
-    cred_dict = json.loads(firebase_config)
-    cred = credentials.Certificate(cred_dict)
-else:
-    # This runs on your local laptop
-    cred = credentials.Certificate("serviceAccountKey.json")
-
-if not firebase_admin._apps:
-    firebase_admin.initialize_app(cred)
-db = firestore.client()
 
 app = Flask(__name__)
-app.secret_key = 'cesd_ultra_modern_secure_2025'
+# IMPORTANT: Use a solid secret key for Hugging Face sessions
+app.secret_key = os.getenv("SECRET_KEY", "cesd_ultra_secure_2025_9988")
 
-# 1. Firebase Setup
+# --- FIREBASE INITIALIZATION ---
 try:
-    if not firebase_admin._apps:
+    firebase_secret = os.getenv("FIREBASE_CONFIG")
+    if firebase_secret:
+        print("✔ Found FIREBASE_CONFIG secret. Parsing...")
+        cred_dict = json.loads(firebase_secret)
+        cred = credentials.Certificate(cred_dict)
+    else:
+        print("⚠ FIREBASE_CONFIG not found. Looking for local JSON...")
         cred = credentials.Certificate("serviceAccountKey.json")
+
+    if not firebase_admin._apps:
         firebase_admin.initialize_app(cred)
     db = firestore.client()
+    print("✔ Firestore Connected Successfully!")
 except Exception as e:
-    print(f"Firebase Init Error: {e}")
+    print(f"❌ Firebase Initialization Error: {e}")
 
-# 2. Configuration
+# Configuration
 INSTRUCTORS = ["Ms. Khushali", "Mr. Dhruv"]
 FACULTY_GROUPS = {
     "Ms. Yashvi Donga": [1, 2],
@@ -55,10 +49,10 @@ ALL_USERS = sorted(list(FACULTY_GROUPS.keys()) + INSTRUCTORS)
 
 try:
     df_students = pd.read_csv('students.csv')
+    print(f"✔ Students CSV Loaded: {len(df_students)} records")
 except Exception as e:
-    print(f"CSV Load Error: {e}")
+    print(f"❌ CSV Load Error: {e}")
 
-# 3. Routes
 @app.route('/')
 def index():
     return redirect(url_for('login'))
@@ -67,19 +61,28 @@ def index():
 def login():
     if request.method == 'POST':
         user_name = request.form.get('faculty_name')
+        print(f"Login attempt for: {user_name}") # DEBUG PRINT
         if user_name in ALL_USERS:
             session['faculty'] = user_name
             session['is_instructor'] = user_name in INSTRUCTORS
+            print(f"Login successful. Redirecting to dashboard...") # DEBUG PRINT
             return redirect(url_for('dashboard'))
+        else:
+            print("Login failed: User not in list") # DEBUG PRINT
     return render_template('login.html', faculties=ALL_USERS)
 
 @app.route('/dashboard')
 def dashboard():
-    if 'faculty' not in session: return redirect(url_for('login'))
+    if 'faculty' not in session:
+        print("Dashboard access denied: No session") # DEBUG PRINT
+        return redirect(url_for('login'))
+    
     user = session['faculty']
     is_ins = session.get('is_instructor')
     groups = list(range(1, 21)) if is_ins else FACULTY_GROUPS.get(user, [])
     return render_template('dashboard.html', faculty=user, groups=groups, is_instructor=is_ins)
+
+# ... Rest of your routes (mark_attendance, export_attendance, logout) same as before ...
 
 @app.route('/mark_attendance/<int:group_no>', methods=['GET', 'POST'])
 def mark_attendance(group_no):
@@ -134,4 +137,5 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # HF typically requires port 7860
+    app.run(host='0.0.0.0', port=7860)
