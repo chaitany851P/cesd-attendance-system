@@ -22,16 +22,25 @@ app.config.update(
 try:
     firebase_secret = os.getenv("FIREBASE_CONFIG")
     if firebase_secret:
+        # Load the JSON string
         cred_dict = json.loads(firebase_secret)
+        
+        # FIX: Ensure the private key handles newlines correctly
+        if 'private_key' in cred_dict:
+            cred_dict['private_key'] = cred_dict['private_key'].replace('\\n', '\n')
+            
         cred = credentials.Certificate(cred_dict)
+        print("✔ Found FIREBASE_CONFIG secret.")
     else:
+        # Local usage
         cred = credentials.Certificate("serviceAccountKey.json")
 
     if not firebase_admin._apps:
         firebase_admin.initialize_app(cred)
     db = firestore.client()
+    print("✔ Firestore Connected Successfully")
 except Exception as e:
-    print(f"Firebase Error: {e}")
+    print(f"❌ Firebase Error: {e}")
 
 # --- CONFIGURATION ---
 INSTRUCTORS = ["Ms. Khushali", "Mr. Dhruv"]
