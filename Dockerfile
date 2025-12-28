@@ -1,6 +1,6 @@
 FROM python:3.9
 
-# Create a non-root user
+# Non-root user for security
 RUN useradd -m -u 1000 user
 USER user
 ENV PATH="/home/user/.local/bin:${PATH}"
@@ -12,4 +12,5 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 
 COPY --chown=user . .
 
+# Hugging Face default port
 CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--timeout", "120", "app:app"]
