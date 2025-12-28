@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Login | CESD</title>
+</head>
+<body style="display: flex; align-items: center; justify-content: center;">
+    <div class="mesh-bg"></div>
+    <div class="card" style="width: 350px; text-align: center;">
+        <h1 style="background: linear-gradient(to right, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">CESD CORE</h1>
+        <form method="POST">
+            <div style="text-align: left; margin: 20px 0;">
+                <label style="color: var(--primary); font-size: 0.7rem; font-weight: 700;">SELECT FACULTY</label>
+                <select name="faculty_name" required>
+                    <option value="" disabled selected>Choose your name...</option>
+                    {% for name in faculties %}<option value="{{ name }}">{{ name }}</option>{% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">SECURE LOGIN</button>
+        </form>
+    </div>
+</body>
+</html>

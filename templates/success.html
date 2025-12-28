@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Success | CESD</title>
+</head>
+<body>
+    <div class="container" style="text-align: center; margin-top: 100px;">
+        <div class="card">
+            <h1 style="color: var(--secondary-green);">✔ Attendance Submitted</h1>
+            <p>Group {{ group_no }} attendance for <strong>{{ date }}</strong> has been synced to Firestore.</p>
+            <br>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>

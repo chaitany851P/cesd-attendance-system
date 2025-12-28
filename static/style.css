@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+:root {
+    --primary: #00ff88; 
+    --secondary: #00bdff; 
+    --bg: #0a0f0d;
+    --glass: rgba(255, 255, 255, 0.08); 
+    --glass-border: rgba(255, 255, 255, 0.15);
+}
+
+body { 
+    margin: 0; 
+    font-family: 'Inter', sans-serif; 
+    background: var(--bg); 
+    color: #fff; 
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.mesh-bg {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+    background: radial-gradient(circle at 5% 5%, #1b4332 0%, transparent 40%),
+                radial-gradient(circle at 95% 95%, #001219 0%, transparent 40%);
+}
+
+/* --- Responsive Navbar --- */
+.navbar { 
+    padding: 20px 5%; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    border-bottom: 1px solid var(--glass-border); 
+    backdrop-filter: blur(15px); 
+}
+
+/* --- Container Logic --- */
+.container { 
+    max-width: 1100px; 
+    margin: 30px auto; 
+    padding: 0 15px; 
+}
+
+/* --- Glass Card --- */
+.card { 
+    background: rgba(20, 25, 23, 0.9); 
+    backdrop-filter: blur(25px); 
+    border: 1px solid var(--glass-border); 
+    border-radius: 24px; 
+    padding: 30px; 
+    box-shadow: 0 25px 50px rgba(0,0,0,0.5); 
+}
+
+/* --- Buttons --- */
+.btn-primary { 
+    background: linear-gradient(135deg, var(--primary), var(--secondary)); 
+    color: #000 !important; font-weight: 700; padding: 14px 20px; border-radius: 12px; 
+    border: none; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+    justify-content: center; transition: 0.3s;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    color: white !important; border: 1px solid var(--glass-border);
+    padding: 14px 20px; border-radius: 12px; font-weight: 600;
+    text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+
+/* --- Responsive Grid --- */
+.grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); 
+    gap: 15px; 
+}
+
+.group-card { 
+    background: var(--glass); border: 1px solid var(--glass-border); padding: 25px 10px; border-radius: 20px; 
+    text-align: center; text-decoration: none; color: white; transition: 0.3s;
+}
+
+/* --- Table Responsiveness --- */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto; /* Essential for mobile */
+    border-radius: 15px;
+}
+
+table { width: 100%; border-collapse: collapse; min-width: 500px; }
+th { color: var(--primary); text-align: left; padding: 12px; font-size: 0.75rem; letter-spacing: 1px; }
+td { padding: 12px; border-bottom: 1px solid var(--glass-border); font-size: 0.9rem; }
+
+/* --- Forms & CALENDAR ICON FIX --- */
+select, input[type="date"] { 
+    background: #1a1f1d !important; color: white !important; border: 1px solid var(--glass-border); 
+    padding: 12px; border-radius: 10px; width: 100%; outline: none; font-size: 1rem;
+}
+
+/* FIX: This makes the browser's default calendar icon white and visible */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(100%) contrast(100%);
+    cursor: pointer;
+    opacity: 0.8;
+}
+
+/* --- MEDIA QUERIES FOR MOBILE --- */
+@media (max-width: 768px) {
+    .navbar { flex-direction: column; gap: 10px; text-align: center; }
+    .card { padding: 20px; border-radius: 20px; }
+    .grid { grid-template-columns: repeat(2, 1fr); } /* 2 columns on mobile */
+    .btn-container { flex-direction: column; } /* Stack buttons on mobile */
+    .attendance-header { flex-direction: column; align-items: flex-start !important; gap: 15px; }
+}

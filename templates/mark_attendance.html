@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Mark Attendance</title>
+</head>
+<body>
+    <div class="mesh-bg"></div>
+    <div class="container">
+        <div class="card">
+            <form method="POST">
+                <!-- Header: Date and Group -->
+                <div class="attendance-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                    <div style="width: 100%; max-width: 250px;">
+                        <label style="color: var(--primary); font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 5px;">
+                            <i class="fa-solid fa-calendar-days"></i> ATTENDANCE DATE
+                        </label>
+                        <input type="date" name="attendance_date" min="2025-12-28" max="2026-01-05" value="2025-12-28" required>
+                    </div>
+                    <div style="text-align: right;">
+                        <h2 style="margin: 0;">Group {{ group_no }}</h2>
+                    </div>
+                </div>
+
+                <!-- Table Controls -->
+                <div style="margin-bottom: 15px;">
+                    <button type="button" onclick="const cbs=document.querySelectorAll('input[type=checkbox]'); cbs.forEach(c=>c.checked=!c.checked)" 
+                            style="background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: #fff; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-size: 0.8rem;">
+                        <i class="fa-solid fa-check-double"></i> Toggle All
+                    </button>
+                </div>
+
+                <!-- Responsive Table Wrapper -->
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>NAME</th>
+                                <th style="text-align: center;">PRESENT</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in students %}
+                            <tr onclick="const c=document.getElementById('c{{s.ID}}'); c.checked=!c.checked" style="cursor: pointer;">
+                                <td style="font-weight: 600;">{{ s.ID }}</td>
+                                <td>{{ s.Name }}</td>
+                                <td style="text-align: center;">
+                                    <input type="checkbox" name="status" value="{{ s.ID }}" id="c{{ s.ID }}" onclick="event.stopPropagation()" style="width: 20px; height: 20px; accent-color: var(--primary);">
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="btn-container" style="display: flex; gap: 15px; margin-top: 30px;">
+                    <a href="/dashboard" class="btn-secondary" style="flex: 1;">
+                        <i class="fa-solid fa-arrow-left"></i> GO BACK
+                    </a>
+                    <button type="submit" class="btn-primary" style="flex: 2;">
+                        SUBMIT ATTENDANCE <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

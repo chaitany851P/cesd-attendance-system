@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Status</title>
+</head>
+<body style="display: flex; align-items: center; justify-content: center;">
+    <div class="mesh-bg"></div>
+    <div class="card" style="text-align: center; width: 400px;">
+        {% if success %}
+            <i class="fa-solid fa-circle-check" style="font-size: 4rem; color: var(--primary);"></i>
+            <h1 style="color: var(--primary);">SUCCESS</h1>
+            <p>Attendance for Group {{ group_no }} recorded for {{ date }}.</p>
+        {% else %}
+            <i class="fa-solid fa-circle-xmark" style="font-size: 4rem; color: #ff4b2b;"></i>
+            <h1 style="color: #ff4b2b;">ERROR</h1>
+            <p>{{ message }}</p>
+        {% endif %}
+        <a href="/dashboard" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 20px;">BACK TO DASHBOARD</a>
+    </div>
+</body>
+</html>

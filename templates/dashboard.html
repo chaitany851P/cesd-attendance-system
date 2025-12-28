@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <title>Dashboard | CESD</title>
+</head>
+<body>
+    <div class="mesh-bg"></div>
+    <nav class="navbar">
+        <h1 style="background: linear-gradient(to right, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">CESD CORE</h1>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <span style="font-size: 0.8rem; opacity: 0.7;">{{ faculty }}</span>
+            <a href="/logout" style="color: #ff4b2b; text-decoration: none; font-size: 0.8rem; font-weight: bold;">Logout</a>
+        </div>
+    </nav>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+            <h2 style="margin: 0;">Dashboard</h2>
+            {% if is_instructor %}
+            <a href="/export_attendance" class="btn-primary"><i class="fa-solid fa-file-excel"></i> EXCEL REPORT</a>
+            {% endif %}
+        </div>
+        <div class="grid">
+            {% for g in groups %}
+            <a href="/mark_attendance/{{ g }}" class="group-card">
+                <span style="font-size: 0.6rem; color: var(--primary); font-weight: 700;">SECTION</span>
+                <h3 style="margin: 8px 0;">Group {{ g }}</h3>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
