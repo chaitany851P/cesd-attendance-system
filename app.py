@@ -8,28 +8,32 @@ from firebase_admin import credentials, firestore
 from datetime import datetime
 
 app = Flask(__name__)
-# IMPORTANT: Use a solid secret key for Hugging Face sessions
-app.secret_key = os.getenv("SECRET_KEY", "cesd_ultra_secure_2025_9988")
+
+# --- CRITICAL: HUGGING FACE SESSION FIX ---
+app.secret_key = "cesd_system_final_prod_2025" # Hardcoded static key
+app.config.update(
+    SESSION_COOKIE_SAMESITE='None',
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    PERMANENT_SESSION_LIFETIME=86400 # 24 Hours
+)
 
 # --- FIREBASE INITIALIZATION ---
 try:
     firebase_secret = os.getenv("FIREBASE_CONFIG")
     if firebase_secret:
-        print("✔ Found FIREBASE_CONFIG secret. Parsing...")
         cred_dict = json.loads(firebase_secret)
         cred = credentials.Certificate(cred_dict)
     else:
-        print("⚠ FIREBASE_CONFIG not found. Looking for local JSON...")
         cred = credentials.Certificate("serviceAccountKey.json")
 
     if not firebase_admin._apps:
         firebase_admin.initialize_app(cred)
     db = firestore.client()
-    print("✔ Firestore Connected Successfully!")
 except Exception as e:
-    print(f"❌ Firebase Initialization Error: {e}")
+    print(f"Firebase Error: {e}")
 
-# Configuration
+# --- CONFIGURATION ---
 INSTRUCTORS = ["Ms. Khushali", "Mr. Dhruv"]
 FACULTY_GROUPS = {
     "Ms. Yashvi Donga": [1, 2],
@@ -47,46 +51,48 @@ FACULTY_GROUPS = {
 }
 ALL_USERS = sorted(list(FACULTY_GROUPS.keys()) + INSTRUCTORS)
 
+# --- LOAD DATA ---
 try:
     df_students = pd.read_csv('students.csv')
-    print(f"✔ Students CSV Loaded: {len(df_students)} records")
 except Exception as e:
-    print(f"❌ CSV Load Error: {e}")
+    df_students = pd.DataFrame()
+
+# --- ROUTES ---
 
 @app.route('/')
 def index():
+    if 'faculty' in session:
+        return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         user_name = request.form.get('faculty_name')
-        print(f"Login attempt for: {user_name}") # DEBUG PRINT
         if user_name in ALL_USERS:
+            session.clear() # Reset session to prevent multi-user mixups
+            session.permanent = True
             session['faculty'] = user_name
             session['is_instructor'] = user_name in INSTRUCTORS
-            print(f"Login successful. Redirecting to dashboard...") # DEBUG PRINT
             return redirect(url_for('dashboard'))
-        else:
-            print("Login failed: User not in list") # DEBUG PRINT
     return render_template('login.html', faculties=ALL_USERS)
 
 @app.route('/dashboard')
 def dashboard():
     if 'faculty' not in session:
-        print("Dashboard access denied: No session") # DEBUG PRINT
         return redirect(url_for('login'))
     
     user = session['faculty']
     is_ins = session.get('is_instructor')
+    # Logic: Instructors see all 20, faculty see assigned
     groups = list(range(1, 21)) if is_ins else FACULTY_GROUPS.get(user, [])
+    
     return render_template('dashboard.html', faculty=user, groups=groups, is_instructor=is_ins)
-
-# ... Rest of your routes (mark_attendance, export_attendance, logout) same as before ...
 
 @app.route('/mark_attendance/<int:group_no>', methods=['GET', 'POST'])
 def mark_attendance(group_no):
     if 'faculty' not in session: return redirect(url_for('login'))
+    
     group_students = df_students[df_students['Assigned_Group'] == group_no].to_dict('records')
     
     if request.method == 'POST':
@@ -108,26 +114,31 @@ def mark_attendance(group_no):
             return render_template('status.html', success=True, date=date, group_no=group_no)
         except Exception as e:
             return render_template('status.html', success=False, message=str(e))
+            
     return render_template('mark_attendance.html', students=group_students, group_no=group_no)
 
 @app.route('/export_attendance')
 def export_attendance():
-    if not session.get('is_instructor'): return "Denied", 403
+    if not session.get('is_instructor'): return "Unauthorized", 403
+    
     docs = db.collection('attendance').stream()
     data = [doc.to_dict() for doc in docs]
-    if not data: return "No Records", 404
+    if not data: return "No data found", 404
     
     df = pd.DataFrame(data)
     if 'timestamp' in df.columns:
         df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
     
     df = df.sort_values(by=['group', 'date', 'id'])
+    
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Master_Group_Wise')
+        df.to_excel(writer, index=False, sheet_name='Master_Summary')
+        # Day-wise sheets
         for date_val, date_df in df.groupby('date'):
-            sheet_name = f"Date_{str(date_val).replace('-', '_')}"
+            sheet_name = f"Day_{str(date_val).replace('-', '_')}"
             date_df.to_excel(writer, index=False, sheet_name=sheet_name[:31])
+            
     output.seek(0)
     return send_file(output, download_name="CESD_Master_Report.xlsx", as_attachment=True)
 
@@ -137,5 +148,4 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    # HF typically requires port 7860
     app.run(host='0.0.0.0', port=7860)
