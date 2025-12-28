@@ -5,6 +5,23 @@ from flask import Flask, render_template, request, redirect, url_for, session, s
 import firebase_admin
 from firebase_admin import credentials, firestore
 from datetime import datetime
+import os
+import json
+
+# --- FIREBASE INITIALIZATION ---
+firebase_config = os.getenv("FIREBASE_CONFIG")
+
+if firebase_config:
+    # This runs on Hugging Face using the Secret we will set
+    cred_dict = json.loads(firebase_config)
+    cred = credentials.Certificate(cred_dict)
+else:
+    # This runs on your local laptop
+    cred = credentials.Certificate("serviceAccountKey.json")
+
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(cred)
+db = firestore.client()
 
 app = Flask(__name__)
 app.secret_key = 'cesd_ultra_modern_secure_2025'
