@@ -1,11 +1,15 @@
 FROM python:3.9
 
-WORKDIR /code
+# Create a non-root user
+RUN useradd -m -u 1000 user
+USER user
+ENV PATH="/home/user/.local/bin:${PATH}"
 
-COPY ./requirements.txt /code/requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
+WORKDIR /home/user/app
 
-COPY . .
+COPY --chown=user requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
 
-# Hugging Face Spaces require port 7860
-CMD ["gunicorn", "-b", "0.0.0.0:7860", "app:app"]
+COPY --chown=user . .
+
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--timeout", "120", "app:app"]
