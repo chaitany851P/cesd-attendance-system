@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -9,27 +9,34 @@
 <body>
     <div class="mesh-bg"></div>
     <nav class="navbar">
-        <h1 style="background: linear-gradient(to right, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">CESD CORE</h1>
-        <div style="display: flex; gap: 15px; align-items: center;">
-            <span style="font-size: 0.8rem; opacity: 0.7;">{{ faculty }}</span>
-            <a href="/logout" style="color: #ff4b2b; text-decoration: none; font-size: 0.8rem; font-weight: bold;">Logout</a>
+        <h1>CESD CORE</h1>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span style="font-size: 0.8rem; color: var(--text-dim);">{{ faculty }}</span>
+            <a href="/logout" style="color: var(--error); text-decoration: none; font-weight: 700; font-size: 0.8rem;">LOGOUT</a>
         </div>
     </nav>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
-            <h2 style="margin: 0;">Dashboard</h2>
-            {% if is_instructor %}
-            <a href="/export_attendance" class="btn-primary"><i class="fa-solid fa-file-excel"></i> EXCEL REPORT</a>
-            {% endif %}
+        <div class="card" style="margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+                <h2 style="margin: 0; font-size: 1.4rem;"><i class="fa-solid fa-people-group" style="color: var(--primary);"></i> Engagement Groups</h2>
+                {% if is_instructor %}<a href="/export_attendance" class="btn-primary" style="padding: 10px 15px; font-size: 0.8rem;"><i class="fa-solid fa-file-excel"></i> EXCEL REPORT</a>{% endif %}
+            </div>
+            <div class="grid">
+                {% for group in groups %}<a href="/mark_attendance/{{ group }}" class="group-card"><span>SECTION</span><h3>Group {{ group }}</h3></a>{% endfor %}
+            </div>
         </div>
-        <div class="grid">
-            {% for g in groups %}
-            <a href="/mark_attendance/{{ g }}" class="group-card">
-                <span style="font-size: 0.6rem; color: var(--primary); font-weight: 700;">SECTION</span>
-                <h3 style="margin: 8px 0;">Group {{ g }}</h3>
-            </a>
-            {% endfor %}
+        {% if dept %}
+        <div class="card" style="border-top: 4px solid var(--secondary);">
+            <h2 style="margin: 0 0 20px 0; font-size: 1.4rem; color: var(--secondary);"><i class="fa-solid fa-graduation-cap"></i> Academic Records</h2>
+            <div class="grid">
+                {% if dept == 'ALL' %}
+                    {% for d in dept_list %}<a href="/mark_dept_attendance/{{ d }}" class="group-card" style="border-color: var(--secondary);"><span>ACADEMIC</span><h3>{{ d }}</h3></a>{% endfor %}
+                {% else %}
+                    <a href="/mark_dept_attendance/{{ dept }}" class="group-card" style="border-color: var(--secondary); min-width: 180px;"><span>MY DEPT</span><h3>{{ dept }}</h3></a>
+                {% endif %}
+            </div>
         </div>
+        {% endif %}
     </div>
 </body>
 </html>
