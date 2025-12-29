@@ -8,52 +8,39 @@ from firebase_admin import credentials, firestore
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = "cesd_master_final_v3_99"
+app.secret_key = "cesd_final_v4_2025"
 
-# Hugging Face Session Fix
-app.config.update(
-    SESSION_COOKIE_SAMESITE='None',
-    SESSION_COOKIE_SECURE=True,
-    PERMANENT_SESSION_LIFETIME=86400
-)
-
-# 1. Firebase Initialization
+# --- 1. FIREBASE INITIALIZATION ---
 firebase_secret = os.getenv("FIREBASE_CONFIG")
-try:
-    if firebase_secret:
-        cred_dict = json.loads(firebase_secret)
-        if 'private_key' in cred_dict:
-            cred_dict['private_key'] = cred_dict['private_key'].replace('\\n', '\n')
-        cred = credentials.Certificate(cred_dict)
-    else:
-        cred = credentials.Certificate("serviceAccountKey.json")
-    if not firebase_admin._apps:
-        firebase_admin.initialize_app(cred)
-    db = firestore.client()
-except Exception as e:
-    print(f"Firebase Error: {e}")
+if firebase_secret:
+    cred_dict = json.loads(firebase_secret)
+    if 'private_key' in cred_dict:
+        cred_dict['private_key'] = cred_dict['private_key'].replace('\\n', '\n')
+    cred = credentials.Certificate(cred_dict)
+else:
+    cred = credentials.Certificate("serviceAccountKey.json")
 
-# 2. Unified Faculty Mappings
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(cred)
+db = firestore.client()
+
+# --- 2. CONFIGURATION ---
 INSTRUCTORS = ["Ms. Khushali", "Mr. Dhruv"]
-
 FACULTY_GROUPS = {
     "Ms. Yashvi Donga": [1, 2], "Ms. Yashvi Kankotiya": [3], "Ms. Khushi Jodhani": [4, 9],
     "Mr. Yug Shah": [5], "Ms. Darshana Nasit": [6], "Mr. Mihir Rathod": [7],
     "Mr. Raj Vyas": [8, 10], "Mr. Nihar Thakkar": [11, 12], "Mr. Chaitany Thakar": [13, 14],
     "Ms. Srushti Jasoliya": [15, 18], "Ms. Brinda Varsani": [16, 20], "Mr. Tirth Avaiya": [17, 19]
 }
-
 FACULTY_DEPARTMENTS = {
     "Mr. Nihar Thakkar": "AIML", "Ms. Yashvi Donga": "CE", "Ms. Yashvi Kankotiya": "CL",
-    "Ms. Khushi Jodhani": "CS", "Ms. Darshana Nasit": "EC","Mr. Chaitany Thakar": "EC", "Mr. Yug Shah": "EE",
+    "Ms. Khushi Jodhani": "CS", "Ms. Darshana Nasit": "EC", "Mr. Yug Shah": "EE",
     "Mr. Mihir Rathod": "IT", "Ms. Brinda Varsani": "ME", "Mr. Raj Vyas": "DCE",
     "Ms. Srushti Jasoliya": "DCS", "Mr. Tirth Avaiya": "DIT", "Ms. Khushali": "ALL", "Mr. Dhruv": "ALL"
 }
-
 DEPT_LIST = sorted(['AIML','CE','CL','CS','EC','EE','IT','ME','DCE','DCS','DIT'])
 ALL_USERS = sorted(list(set(list(FACULTY_GROUPS.keys()) + list(FACULTY_DEPARTMENTS.keys()) + INSTRUCTORS)))
 
-# Load and Sort Students
 try:
     df_students = pd.read_csv('students.csv')
     df_students['ID'] = df_students['ID'].astype(str)
@@ -61,7 +48,8 @@ try:
 except:
     df_students = pd.DataFrame()
 
-# 3. Routes
+# --- 3. ROUTES ---
+
 @app.route('/')
 def index():
     if 'faculty' in session: return redirect(url_for('dashboard'))
@@ -91,28 +79,33 @@ def dashboard():
 def mark_attendance(group_no):
     if 'faculty' not in session: return redirect(url_for('login'))
     data = df_students[df_students['Assigned_Group'] == group_no].to_dict('records')
-    if request.method == 'POST': return save_data(data, group_no, "Engagement")
+    if request.method == 'POST': return handle_save(data, group_no, "Engagement")
     return render_template('mark_attendance.html', students=data, group_no=group_no)
 
 @app.route('/mark_dept_attendance/<dept_name>', methods=['GET', 'POST'])
 def mark_dept_attendance(dept_name):
     if 'faculty' not in session: return redirect(url_for('login'))
     data = df_students[df_students['Department'] == dept_name].to_dict('records')
-    if request.method == 'POST': return save_data(data, dept_name, "Academic")
+    if request.method == 'POST': return handle_save(data, dept_name, "Academic")
     return render_template('mark_attendance.html', students=data, dept_name=dept_name)
 
-def save_data(student_list, ident, mode):
+def handle_save(student_list, ident, mode):
     try:
-        date, sess_type = request.form.get('attendance_date'), request.form.get('session_type')
-        p_ids, batch = request.form.getlist('status'), db.batch()
+        date = request.form.get('attendance_date')
+        sess = request.form.get('session_type')
+        p_ids = request.form.getlist('status')
+        batch = db.batch()
         for s in student_list:
             sid = str(s['ID'])
             status = "Present" if sid in p_ids else "Absent"
-            doc_id = f"{date}_{sid}_{sess_type}_{mode}"
+            # THIS UNIQUE ID PREVENTS DUPLICATES
+            # Format: Date_StudentID_Session_Mode (e.g. 2025-12-28_25EC002_Morning_Academic)
+            doc_id = f"{date}_{sid}_{sess}_{mode}"
             batch.set(db.collection('attendance').document(doc_id), {
                 'date': date, 'id': sid, 'name': s['Name'], 'department': s['Department'],
-                'type': mode, 'group_or_dept': ident, 'session': sess_type,
-                'status': status, 'marked_by': session['faculty'], 'timestamp': firestore.SERVER_TIMESTAMP
+                'mode': mode, 'section': ident, 'session': sess,
+                'status': status, 'marked_by': session['faculty'], 
+                'timestamp': firestore.SERVER_TIMESTAMP
             })
         batch.commit()
         return render_template('status.html', success=True, date=date)
@@ -126,14 +119,18 @@ def export_attendance():
     if not docs: return "No data", 404
     df = pd.DataFrame(docs)
     if 'timestamp' in df.columns: df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
-    df = df.sort_values(by=['type', 'group_or_dept', 'date', 'session', 'id'])
+    
+    # Sort for professional report
+    df = df.sort_values(by=['mode', 'section', 'date', 'session', 'id'])
+    
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df.to_excel(writer, index=False, sheet_name='Master_Group_Wise')
+        df.to_excel(writer, index=False, sheet_name='Master_Report')
+        # Split by Date for easy checking
         for d_val, d_df in df.groupby('date'):
             d_df.to_excel(writer, index=False, sheet_name=f"Date_{str(d_val).replace('-','_')}"[:31])
     output.seek(0)
-    return send_file(output, download_name="CESD_Attendance_Report.xlsx", as_attachment=True)
+    return send_file(output, download_name="CESD_Master_Attendance.xlsx", as_attachment=True)
 
 @app.route('/logout')
 def logout():
