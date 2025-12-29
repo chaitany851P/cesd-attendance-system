@@ -1,102 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mark Attendance | CESD Portal</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Mobile Optimization: Sticky first columns */
-        .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        
-        table { border-collapse: separate; border-spacing: 0; width: 100%; }
-
-        /* Stick the checkbox column to the left */
-        th:first-child, td:first-child {
-            position: sticky;
-            left: 0;
-            z-index: 2;
-            background: #1a1f1d; /* Matches dark theme */
-            width: 50px;
-            text-align: center;
-        }
-
-        /* Stick the ID column as well */
-        th:nth-child(2), td:nth-child(2) {
-            position: sticky;
-            left: 50px;
-            z-index: 2;
-            background: #1a1f1d;
-            border-right: 2px solid var(--glass-border);
-        }
-
-        tr:hover td { background: rgba(0, 255, 136, 0.1) !important; }
-        
-        .student-row { cursor: pointer; }
+        .session-toggle { display: flex; background: rgba(255,255,255,0.05); padding: 5px; border-radius: 12px; border: 1px solid var(--glass-border); width: 100%; }
+        .session-label { flex: 1; text-align: center; padding: 12px; cursor: pointer; border-radius: 8px; font-size: 0.85rem; font-weight: 600; transition: 0.3s; }
+        input[type="radio"]:checked + .session-label.m-lab { background: var(--primary); color: #000; }
+        input[type="radio"]:checked + .session-label.a-lab { background: var(--secondary); color: #000; }
     </style>
 </head>
 <body>
     <div class="mesh-bg"></div>
-
     <div class="container">
         <div class="card">
-            <form id="attendanceForm" method="POST">
-                
-                <!-- Top Info Bar -->
-                <div class="attendance-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
-                    <div style="width: 100%; max-width: 250px;">
-                        <label style="color: var(--primary); font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 5px;">
-                            <i class="fa-solid fa-calendar-days"></i> DATE
-                        </label>
-                        <input type="date" name="attendance_date" min="2025-12-28" max="2026-01-05" value="2025-12-28" required>
+            <form method="POST">
+                <div class="attendance-header" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 25px; flex-wrap: wrap; gap: 20px;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <label style="color: var(--primary); font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 8px;">DATE</label>
+                        <input type="date" name="attendance_date" min="2025-12-28" max="2026-01-05" value="2025-12-29" required>
+                    </div>
+                    <div style="flex: 1.5; min-width: 250px;">
+                        <label style="color: var(--secondary); font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 8px;">SESSION TYPE</label>
+                        <div class="session-toggle">
+                            <input type="radio" name="session_type" value="Morning" id="morning" checked style="display:none;"><label for="morning" class="session-label m-lab">Morning</label>
+                            <input type="radio" name="session_type" value="Afternoon" id="afternoon" style="display:none;"><label for="afternoon" class="session-label a-lab">Afternoon</label>
+                        </div>
                     </div>
                     <div style="text-align: right;">
-                        <h2 style="margin: 0; font-size: 1.4rem;">Group {{ group_no }}</h2>
+                        <h2 style="margin: 0; font-size: 1.5rem;">{% if group_no %}Group {{ group_no }}{% else %}{{ dept_name }} Dept{% endif %}</h2>
                     </div>
                 </div>
-
-                <!-- Toggle/Select All Button -->
-                <button type="button" onclick="const cbs=document.querySelectorAll('input[type=checkbox]'); cbs.forEach(c=>c.checked=!c.checked)" 
-                        style="background: var(--glass); border: 1px solid var(--glass-border); color: #fff; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-size: 0.8rem; margin-bottom: 15px; width: 100%;">
-                    <i class="fa-solid fa-check-double"></i> TOGGLE ALL STUDENTS
-                </button>
-
-                <!-- Responsive Table with First Column Checkbox -->
+                <button type="button" onclick="const cbs=document.querySelectorAll('input[type=checkbox]'); cbs.forEach(c=>c.checked=!c.checked)" style="background: var(--glass); border: 1px solid var(--glass-border); color: #fff; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 0.8rem; margin-bottom: 15px; width: 100%;"><i class="fa-solid fa-check-double"></i> TOGGLE ALL STUDENTS</button>
                 <div class="table-wrapper">
                     <table>
-                        <thead>
-                            <tr>
-                                <th>PR.</th> <!-- Present -->
-                                <th>ID</th>
-                                <th>STUDENT NAME</th>
-                                <th>DEPARTMENT</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>PR.</th><th>ID</th><th>STUDENT NAME</th><th>DEPT</th></tr></thead>
                         <tbody>
-                            {% for student in students %}
-                            <tr class="student-row" onclick="document.getElementById('c{{student.ID}}').click();">
-                                <td class="checkbox-cell">
-                                    <input type="checkbox" name="status" value="{{ student.ID }}" id="c{{ student.ID }}" 
-                                           onclick="event.stopPropagation()" style="width: 22px; height: 22px; accent-color: var(--primary);">
-                                </td>
-                                <td style="font-weight: 700; color: var(--primary);">{{ student.ID }}</td>
-                                <td style="white-space: nowrap;">{{ student.Name }}</td>
-                                <td style="color: #aaa; font-size: 0.8rem;">{{ student.Department }}</td>
-                            </tr>
-                            {% endfor %}
+                            {% for s in students %}<tr onclick="document.getElementById('c{{s.ID}}').click();"><td><input type="checkbox" name="status" value="{{ s.ID }}" id="c{{ s.ID }}" onclick="event.stopPropagation()"></td><td style="color: var(--primary); font-weight: 700;">{{ s.ID }}</td><td style="white-space: nowrap;">{{ s.Name }}</td><td style="font-size: 0.8rem; opacity: 0.7;">{{ s.Department }}</td></tr>{% endfor %}
                         </tbody>
                     </table>
                 </div>
-
-                <!-- Bottom Navigation -->
                 <div style="display: flex; gap: 15px; margin-top: 30px;">
-                    <a href="/dashboard" class="btn-secondary" style="flex: 1;">
-                        <i class="fa-solid fa-arrow-left"></i> BACK
-                    </a>
-                    <button type="submit" class="btn-primary" style="flex: 2;">
-                        SUBMIT <i class="fa-solid fa-cloud-arrow-up"></i>
-                    </button>
+                    <a href="/dashboard" class="btn-secondary" style="flex: 1;">GO BACK</a>
+                    <button type="submit" class="btn-primary" style="flex: 2;">SUBMIT RECORDS <i class="fa-solid fa-paper-plane" style="margin-left: 8px;"></i></button>
                 </div>
             </form>
         </div>
