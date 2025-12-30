@@ -6,9 +6,16 @@ from firebase_admin import credentials, firestore
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = "cesd_final_ultra_secure_99"
+app.secret_key = "cesd_admin_system_2025_final"
 
-# 1. Firebase Initialization
+# Hugging Face Session Fix
+app.config.update(
+    SESSION_COOKIE_SAMESITE='None',
+    SESSION_COOKIE_SECURE=True,
+    PERMANENT_SESSION_LIFETIME=86400
+)
+
+# --- 1. FIREBASE INITIALIZATION ---
 firebase_secret = os.getenv("FIREBASE_CONFIG")
 if firebase_secret:
     cred_dict = json.loads(firebase_secret)
@@ -19,7 +26,7 @@ else:
 if not firebase_admin._apps: firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# 2. Unified Faculty Mapping
+# --- 2. CONFIGURATION ---
 INSTRUCTORS = ["Ms. Khushali", "Mr. Dhruv"]
 FACULTY_GROUPS = {
     "Ms. Yashvi Donga": [1, 2], "Ms. Yashvi Kankotiya": [3], "Ms. Khushi Jodhani": [4, 9],
@@ -27,27 +34,18 @@ FACULTY_GROUPS = {
     "Mr. Raj Vyas": [8, 10], "Mr. Nihar Thakkar": [11, 12], "Mr. Chaitany Thakar": [13, 14],
     "Ms. Srushti Jasoliya": [15, 18], "Ms. Brinda Varsani": [16, 20], "Mr. Tirth Avaiya": [17, 19]
 }
-
-# Unified Department mapping - Giving Mr. Chaitany Thakar access to EC
 FACULTY_DEPARTMENTS = {
     "Mr. Nihar Thakkar": "AIML", "Ms. Yashvi Donga": "CE", "Ms. Yashvi Kankotiya": "CL",
     "Ms. Khushi Jodhani": "CS", "Ms. Darshana Nasit": "EC", "Mr. Yug Shah": "EE",
     "Mr. Mihir Rathod": "IT", "Ms. Brinda Varsani": "ME", "Mr. Raj Vyas": "DCE",
     "Ms. Srushti Jasoliya": "DCS", "Mr. Tirth Avaiya": "DIT",
-    "Mr. Chaitany Thakar": "EC", # ACCESS TO EC DEPARTMENT ADDED
-    "Ms. Khushali": "ALL", "Mr. Dhruv": "ALL"
+    "Mr. Chaitany Thakar": "EC", "Ms. Khushali": "ALL", "Mr. Dhruv": "ALL"
 }
-
 DEPT_LIST = sorted(['AIML','CE','CL','CS','EC','EE','IT','ME','DCE','DCS','DIT'])
 ALL_USERS = sorted(list(set(list(FACULTY_GROUPS.keys()) + list(FACULTY_DEPARTMENTS.keys()) + INSTRUCTORS)))
 
-try:
-    df_students = pd.read_csv('students.csv')
-    df_students['ID'] = df_students['ID'].astype(str)
-    df_students = df_students.sort_values(by='ID')
-except: df_students = pd.DataFrame()
+# --- 3. ROUTES ---
 
-# 3. Routes
 @app.route('/')
 def index():
     if 'faculty' in session: return redirect(url_for('dashboard'))
@@ -71,52 +69,23 @@ def dashboard():
     dept = FACULTY_DEPARTMENTS.get(user)
     return render_template('dashboard.html', faculty=user, groups=groups, dept=dept, dept_list=DEPT_LIST, is_instructor=is_ins)
 
-@app.route('/add_student', methods=['POST'])
-def add_student():
-    if session.get('faculty') != "Mr. Chaitany Thakar":
-        return "Unauthorized", 403
-    
-    try:
-        sid = request.form.get('student_id').strip().upper()
-        name = request.form.get('name').strip().upper()
-        dept = request.form.get('department').strip().upper()
-        group = int(request.form.get('assigned_group'))
-        
-        # Save to Firestore
-        db.collection('students').document(sid).set({
-            'ID': sid,
-            'Name': name,
-            'Department': dept,
-            'Assigned_Group': group
-        })
-        
-        # Flash message could be added here if needed
-        return redirect(url_for('admin_panel'))
-    except Exception as e:
-        return f"Failed to add student: {str(e)}", 500
-
+# --- REAL-TIME ATTENDANCE ROUTES ---
 
 @app.route('/mark_attendance/<int:group_no>', methods=['GET', 'POST'])
 def mark_attendance(group_no):
     if 'faculty' not in session: return redirect(url_for('login'))
-    
-    # FETCH LIVE FROM FIRESTORE (instead of CSV)
+    # Fetch live from Firestore
     docs = db.collection('students').where('Assigned_Group', '==', group_no).stream()
-    data = [d.to_dict() for d in docs]
-    data = sorted(data, key=lambda x: x['ID']) # Keep it sorted
-    
+    data = sorted([d.to_dict() for d in docs], key=lambda x: x['ID'])
     if request.method == 'POST': return save_data_logic(data, f"Group {group_no}", "Engagement")
     return render_template('mark_attendance.html', students=data, title=f"Group {group_no}")
 
 @app.route('/mark_dept_attendance/<dept_name>', methods=['GET', 'POST'])
 def mark_dept_attendance(dept_name):
     if 'faculty' not in session: return redirect(url_for('login'))
-    
-    # FETCH LIVE FROM FIRESTORE (instead of CSV)
+    # Fetch live from Firestore
     docs = db.collection('students').where('Department', '==', dept_name).stream()
-    data = [d.to_dict() for d in docs]
-    data = sorted(data, key=lambda x: x['ID']) # Keep it sorted
-    
+    data = sorted([d.to_dict() for d in docs], key=lambda x: x['ID'])
     if request.method == 'POST': return save_data_logic(data, dept_name, "Academic")
     return render_template('mark_attendance.html', students=data, title=f"{dept_name} Dept")
 
@@ -135,59 +104,43 @@ def save_data_logic(student_list, ident, mode):
         batch.commit(); return render_template('status.html', success=True, date=date)
     except Exception as e: return render_template('status.html', success=False, message=str(e))
 
+# --- ADMIN PANEL ROUTES (EXCLUSIVE TO MR. CHAITANY THAKAR) ---
+
 @app.route('/admin')
 def admin_panel():
-    if session.get('faculty') != "Mr. Chaitany Thakar":
-        return "Access Denied: Admin Privileges Required", 403
-    
-    # Fetch current students from Firestore to ensure we edit live data
+    if session.get('faculty') != "Mr. Chaitany Thakar": return "Access Denied", 403
     docs = db.collection('students').stream()
-    students = [d.to_dict() for d in docs]
-    # Sort by ID for the admin table
-    students = sorted(students, key=lambda x: x['ID'])
-    
+    students = sorted([d.to_dict() for d in docs], key=lambda x: x['ID'])
     return render_template('admin.html', students=students)
+
+@app.route('/add_student', methods=['POST'])
+def add_student():
+    if session.get('faculty') != "Mr. Chaitany Thakar": return "Denied", 403
+    sid = request.form.get('student_id').strip().upper()
+    db.collection('students').document(sid).set({
+        'ID': sid, 'Name': request.form.get('name').strip().upper(),
+        'Department': request.form.get('department').strip().upper(),
+        'Assigned_Group': int(request.form.get('assigned_group'))
+    })
+    return redirect(url_for('admin_panel'))
 
 @app.route('/update_student', methods=['POST'])
 def update_student():
-    if session.get('faculty') != "Mr. Chaitany Thakar":
-        return "Unauthorized", 403
-    
-    try:
-        sid = request.form.get('student_id')
-        new_group = int(request.form.get('new_group'))
-        new_dept = request.form.get('new_dept').upper()
-        
-        # Update live Firestore record
-        db.collection('students').document(sid).update({
-            'Assigned_Group': new_group,
-            'Department': new_dept
-        })
-        
-        # IMPORTANT: To make this permanent even after a server restart, 
-        # you should manually update your students.csv later, 
-        # or add code here to write to the CSV file.
-        
-        return redirect(url_for('admin_panel'))
-    except Exception as e:
-        return f"Update Failed: {str(e)}", 500
+    if session.get('faculty') != "Mr. Chaitany Thakar": return "Denied", 403
+    sid = request.form.get('student_id')
+    db.collection('students').document(sid).update({
+        'Assigned_Group': int(request.form.get('new_group')),
+        'Department': request.form.get('new_dept').upper()
+    })
+    return redirect(url_for('admin_panel'))
 
 @app.route('/delete_student/<sid>')
 def delete_student(sid):
-    if session.get('faculty') != "Mr. Chaitany Thakar":
-        return "Unauthorized Access", 403
-    
-    try:
-        # Delete from Firestore Students collection
-        db.collection('students').document(sid).delete()
-        
-        # Optional: You could also delete their attendance history here 
-        # but usually, it's better to keep the history even if the student leaves.
-        
-        return redirect(url_for('admin_panel'))
-    except Exception as e:
-        return f"Delete Failed: {str(e)}", 500
+    if session.get('faculty') != "Mr. Chaitany Thakar": return "Denied", 403
+    db.collection('students').document(sid).delete()
+    return redirect(url_for('admin_panel'))
 
+# --- EXPORT & LOGOUT ---
 
 @app.route('/export_attendance')
 def export_attendance():
@@ -196,17 +149,15 @@ def export_attendance():
         docs = [d.to_dict() for d in db.collection('attendance').stream()]
         if not docs: return "No data", 404
         df = pd.DataFrame(docs)
-        for c in ['mode','section','date','session','id','timestamp']:
+        for c in ['mode','section','date','session','id']:
             if c not in df.columns: df[c] = "N/A"
-        df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce').dt.tz_localize(None)
+        if 'timestamp' in df.columns: df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce').dt.tz_localize(None)
         df = df.sort_values(by=['mode','section','date','session','id'])
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
             df.to_excel(writer, index=False, sheet_name='Master_Report')
-            for d_val, d_df in df.groupby('date'):
-                d_df.to_excel(writer, index=False, sheet_name=f"Date_{str(d_val).replace('-','_')}"[:31])
         output.seek(0); return send_file(output, download_name="CESD_Master_Attendance.xlsx", as_attachment=True)
-    except Exception as e: return f"Export Error: {str(e)}"
+    except Exception as e: return f"Error: {str(e)}"
 
 @app.route('/logout')
 def logout(): session.clear(); return redirect(url_for('login'))
