@@ -43,7 +43,7 @@ FACULTY_DEPARTMENTS = {
 }
 DEPT_LIST = sorted(['AIML','CE','CL','CS','EC','EE','IT','ME','DCE','DCS','DIT'])
 ALL_USERS = sorted(list(set(list(FACULTY_GROUPS.keys()) + list(FACULTY_DEPARTMENTS.keys()) + INSTRUCTORS)))
-
+ADMIN_LIST = ["Mr. Chaitany Thakar", "Mr. Dhruv", "Ms. Khushali"]
 # --- 3. ROUTES ---
 
 @app.route('/')
@@ -108,14 +108,17 @@ def save_data_logic(student_list, ident, mode):
 
 @app.route('/admin')
 def admin_panel():
-    if session.get('faculty') != "Mr. Chaitany Thakar": return "Access Denied", 403
+    # Allow all three admins
+    if session.get('faculty') not in ADMIN_LIST: 
+        return "Access Denied", 403
+    
     docs = db.collection('students').stream()
     students = sorted([d.to_dict() for d in docs], key=lambda x: x['ID'])
     return render_template('admin.html', students=students)
 
 @app.route('/add_student', methods=['POST'])
 def add_student():
-    if session.get('faculty') != "Mr. Chaitany Thakar": return "Denied", 403
+    if session.get('faculty') not in ADMIN_LIST: return "Denied", 403
     sid = request.form.get('student_id').strip().upper()
     db.collection('students').document(sid).set({
         'ID': sid, 'Name': request.form.get('name').strip().upper(),
@@ -126,7 +129,7 @@ def add_student():
 
 @app.route('/update_student', methods=['POST'])
 def update_student():
-    if session.get('faculty') != "Mr. Chaitany Thakar": return "Denied", 403
+    if session.get('faculty') not in ADMIN_LIST: return "Denied", 403
     sid = request.form.get('student_id')
     db.collection('students').document(sid).update({
         'Assigned_Group': int(request.form.get('new_group')),
@@ -136,7 +139,7 @@ def update_student():
 
 @app.route('/delete_student/<sid>')
 def delete_student(sid):
-    if session.get('faculty') != "Mr. Chaitany Thakar": return "Denied", 403
+    if session.get('faculty') not in ADMIN_LIST: return "Denied", 403
     db.collection('students').document(sid).delete()
     return redirect(url_for('admin_panel'))
 
