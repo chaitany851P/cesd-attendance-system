@@ -28,6 +28,37 @@
     </nav>
 
     <div class="container">
+        <!-- Put this inside the <div class="container"> above the Search Bar -->
+
+<div class="card" style="margin-bottom: 30px; border-top: 4px solid var(--primary);">
+    <h3 style="margin-top: 0; color: var(--primary);"><i class="fa-solid fa-user-plus"></i> Add New Student Manually</h3>
+    
+    <form action="/add_student" method="POST" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: flex-end;">
+        <div>
+            <label style="font-size: 0.7rem; color: var(--text-dim);">STUDENT ID</label>
+            <input type="text" name="student_id" class="edit-input" style="width: 100%; padding: 12px;" placeholder="e.g. 25CS001" required>
+        </div>
+        <div>
+            <label style="font-size: 0.7rem; color: var(--text-dim);">FULL NAME</label>
+            <input type="text" name="name" class="edit-input" style="width: 100%; padding: 12px;" placeholder="e.g. JOHN DOE" required>
+        </div>
+        <div>
+            <label style="font-size: 0.7rem; color: var(--text-dim);">DEPARTMENT</label>
+            <input type="text" name="department" class="edit-input" style="width: 100%; padding: 12px;" placeholder="e.g. CS" required>
+        </div>
+        <div>
+            <label style="font-size: 0.7rem; color: var(--text-dim);">GROUP NO</label>
+            <input type="number" name="assigned_group" class="edit-input" style="width: 100%; padding: 12px;" placeholder="1-20" required>
+        </div>
+        <div>
+            <button type="submit" class="btn-primary" style="width: 100%; height: 45px; font-size: 0.8rem;">
+                ADD STUDENT
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Then the Search bar and Student Table follow below... -->
         <div class="card">
             <h2 style="margin-top: 0; color: var(--primary);">Master Student Management</h2>
             <p style="color: var(--text-dim); margin-bottom: 25px;">Search for a student and update their Group or Department assignments live.</p>
