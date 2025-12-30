@@ -71,6 +71,31 @@ def dashboard():
     dept = FACULTY_DEPARTMENTS.get(user)
     return render_template('dashboard.html', faculty=user, groups=groups, dept=dept, dept_list=DEPT_LIST, is_instructor=is_ins)
 
+@app.route('/add_student', methods=['POST'])
+def add_student():
+    if session.get('faculty') != "Mr. Chaitany Thakar":
+        return "Unauthorized", 403
+    
+    try:
+        sid = request.form.get('student_id').strip().upper()
+        name = request.form.get('name').strip().upper()
+        dept = request.form.get('department').strip().upper()
+        group = int(request.form.get('assigned_group'))
+        
+        # Save to Firestore
+        db.collection('students').document(sid).set({
+            'ID': sid,
+            'Name': name,
+            'Department': dept,
+            'Assigned_Group': group
+        })
+        
+        # Flash message could be added here if needed
+        return redirect(url_for('admin_panel'))
+    except Exception as e:
+        return f"Failed to add student: {str(e)}", 500
+
+
 @app.route('/mark_attendance/<int:group_no>', methods=['GET', 'POST'])
 def mark_attendance(group_no):
     if 'faculty' not in session: return redirect(url_for('login'))
