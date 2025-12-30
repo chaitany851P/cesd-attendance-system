@@ -100,6 +100,43 @@ def save_data_logic(student_list, ident, mode):
         batch.commit(); return render_template('status.html', success=True, date=date)
     except Exception as e: return render_template('status.html', success=False, message=str(e))
 
+@app.route('/admin')
+def admin_panel():
+    if session.get('faculty') != "Mr. Chaitany Thakar":
+        return "Access Denied: Admin Privileges Required", 403
+    
+    # Fetch current students from Firestore to ensure we edit live data
+    docs = db.collection('students').stream()
+    students = [d.to_dict() for d in docs]
+    # Sort by ID for the admin table
+    students = sorted(students, key=lambda x: x['ID'])
+    
+    return render_template('admin.html', students=students)
+
+@app.route('/update_student', methods=['POST'])
+def update_student():
+    if session.get('faculty') != "Mr. Chaitany Thakar":
+        return "Unauthorized", 403
+    
+    try:
+        sid = request.form.get('student_id')
+        new_group = int(request.form.get('new_group'))
+        new_dept = request.form.get('new_dept').upper()
+        
+        # Update live Firestore record
+        db.collection('students').document(sid).update({
+            'Assigned_Group': new_group,
+            'Department': new_dept
+        })
+        
+        # IMPORTANT: To make this permanent even after a server restart, 
+        # you should manually update your students.csv later, 
+        # or add code here to write to the CSV file.
+        
+        return redirect(url_for('admin_panel'))
+    except Exception as e:
+        return f"Update Failed: {str(e)}", 500
+
 @app.route('/export_attendance')
 def export_attendance():
     if not session.get('is_instructor'): return "Denied", 403
