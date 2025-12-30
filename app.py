@@ -172,6 +172,23 @@ def update_student():
     except Exception as e:
         return f"Update Failed: {str(e)}", 500
 
+@app.route('/delete_student/<sid>')
+def delete_student(sid):
+    if session.get('faculty') != "Mr. Chaitany Thakar":
+        return "Unauthorized Access", 403
+    
+    try:
+        # Delete from Firestore Students collection
+        db.collection('students').document(sid).delete()
+        
+        # Optional: You could also delete their attendance history here 
+        # but usually, it's better to keep the history even if the student leaves.
+        
+        return redirect(url_for('admin_panel'))
+    except Exception as e:
+        return f"Delete Failed: {str(e)}", 500
+
+
 @app.route('/export_attendance')
 def export_attendance():
     if not session.get('is_instructor'): return "Denied", 403
