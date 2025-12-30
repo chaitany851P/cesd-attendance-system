@@ -1,101 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control | CESD Core</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <title>Admin Panel | CESD</title>
     <style>
-        .search-container { margin-bottom: 20px; position: relative; }
-        .search-input { 
-            width: 100%; padding: 15px 45px; border-radius: 15px; 
-            background: var(--glass); border: 1px solid var(--glass-border); color: white;
-        }
-        .search-icon { position: absolute; left: 15px; top: 15px; color: var(--primary); }
-        .admin-table td { font-size: 0.85rem; }
-        .edit-input { 
-            background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); 
-            color: white; padding: 5px; border-radius: 5px; width: 60px;
-        }
-        .dept-input { width: 80px; }
+        .admin-card { border-top: 4px solid var(--secondary); margin-bottom: 30px; }
+        .search-box { position: relative; margin-bottom: 20px; }
+        .search-box input { padding-left: 45px; background: rgba(255,255,255,0.05); }
+        .search-box i { position: absolute; left: 15px; top: 15px; color: var(--primary); }
+        .edit-row input { background: #1a1f1d; border: 1px solid var(--glass-border); color: white; padding: 8px; border-radius: 8px; width: 100%; }
+        .btn-del { color: var(--error); cursor: pointer; font-size: 1.2rem; }
+        .btn-del:hover { opacity: 0.7; }
     </style>
 </head>
 <body>
     <div class="mesh-bg"></div>
     <nav class="navbar">
-        <h1>ADMIN CONTROL</h1>
+        <h1>ADMIN PANEL</h1>
         <a href="/dashboard" class="btn-secondary" style="padding: 10px 20px;">BACK TO DASHBOARD</a>
     </nav>
 
     <div class="container">
-        <!-- Put this inside the <div class="container"> above the Search Bar -->
+        <!-- ADD STUDENT FORM -->
+        <div class="card admin-card">
+            <h3 style="margin-top: 0; color: var(--primary);"><i class="fa-solid fa-user-plus"></i> Register New Student</h3>
+            <form action="/add_student" method="POST" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; align-items: flex-end;">
+                <div><label style="font-size: 0.7rem; color: var(--text-dim);">STUDENT ID</label><input type="text" name="student_id" placeholder="e.g. 25CS001" required style="background: #1a1f1d; color: white; border: 1px solid var(--glass-border); padding: 12px; border-radius: 10px; width:100%;"></div>
+                <div><label style="font-size: 0.7rem; color: var(--text-dim);">NAME</label><input type="text" name="name" placeholder="e.g. RAJ PATEL" required style="background: #1a1f1d; color: white; border: 1px solid var(--glass-border); padding: 12px; border-radius: 10px; width:100%;"></div>
+                <div><label style="font-size: 0.7rem; color: var(--text-dim);">DEPT</label><input type="text" name="department" placeholder="e.g. EC" required style="background: #1a1f1d; color: white; border: 1px solid var(--glass-border); padding: 12px; border-radius: 10px; width:100%;"></div>
+                <div><label style="font-size: 0.7rem; color: var(--text-dim);">GROUP</label><input type="number" name="assigned_group" placeholder="1-20" required style="background: #1a1f1d; color: white; border: 1px solid var(--glass-border); padding: 12px; border-radius: 10px; width:100%;"></div>
+                <button type="submit" class="btn-primary" style="height: 48px;">ADD STUDENT</button>
+            </form>
+        </div>
 
-<div class="card" style="margin-bottom: 30px; border-top: 4px solid var(--primary);">
-    <h3 style="margin-top: 0; color: var(--primary);"><i class="fa-solid fa-user-plus"></i> Add New Student Manually</h3>
-    
-    <form action="/add_student" method="POST" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; align-items: flex-end;">
-        <div>
-            <label style="font-size: 0.7rem; color: var(--text-dim);">STUDENT ID</label>
-            <input type="text" name="student_id" class="edit-input" style="width: 100%; padding: 12px;" placeholder="e.g. 25CS001" required>
-        </div>
-        <div>
-            <label style="font-size: 0.7rem; color: var(--text-dim);">FULL NAME</label>
-            <input type="text" name="name" class="edit-input" style="width: 100%; padding: 12px;" placeholder="e.g. JOHN DOE" required>
-        </div>
-        <div>
-            <label style="font-size: 0.7rem; color: var(--text-dim);">DEPARTMENT</label>
-            <input type="text" name="department" class="edit-input" style="width: 100%; padding: 12px;" placeholder="e.g. CS" required>
-        </div>
-        <div>
-            <label style="font-size: 0.7rem; color: var(--text-dim);">GROUP NO</label>
-            <input type="number" name="assigned_group" class="edit-input" style="width: 100%; padding: 12px;" placeholder="1-20" required>
-        </div>
-        <div>
-            <button type="submit" class="btn-primary" style="width: 100%; height: 45px; font-size: 0.8rem;">
-                ADD STUDENT
-            </button>
-        </div>
-    </form>
-</div>
-
-<!-- Then the Search bar and Student Table follow below... -->
+        <!-- MANAGE STUDENTS TABLE -->
         <div class="card">
-            <h2 style="margin-top: 0; color: var(--primary);">Master Student Management</h2>
-            <p style="color: var(--text-dim); margin-bottom: 25px;">Search for a student and update their Group or Department assignments live.</p>
-
-            <div class="search-container">
-                <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                <input type="text" id="studentSearch" class="search-input" placeholder="Search by ID or Name...">
+            <h3 style="margin-top: 0; color: var(--secondary);"><i class="fa-solid fa-users-gear"></i> Manage Database</h3>
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="adminSearch" placeholder="Filter by ID or Name...">
             </div>
 
-            <div class="table-wrapper" style="max-height: 600px;">
-                <table class="admin-table">
+            <div class="table-wrapper" style="max-height: 500px;">
+                <table>
                     <thead>
                         <tr>
                             <th>ID</th>
                             <th>NAME</th>
-                            <th>GROUP</th>
-                            <th>DEPT</th>
-                            <th>ACTION</th>
+                            <th style="width: 80px;">GROUP</th>
+                            <th style="width: 100px;">DEPT</th>
+                            <th>SAVE</th>
+                            <th>DEL</th>
                         </tr>
                     </thead>
-                    <tbody id="studentTable">
+                    <tbody id="adminTableBody">
                         {% for s in students %}
-                        <tr>
+                        <tr class="edit-row">
                             <form action="/update_student" method="POST">
                                 <input type="hidden" name="student_id" value="{{ s.ID }}">
-                                <td style="font-weight: 700; color: var(--secondary);">{{ s.ID }}</td>
-                                <td>{{ s.Name }}</td>
-                                <td>
-                                    <input type="number" name="new_group" class="edit-input" value="{{ s.Assigned_Group }}" required>
-                                </td>
-                                <td>
-                                    <input type="text" name="new_dept" class="edit-input dept-input" value="{{ s.Department }}" required>
-                                </td>
-                                <td>
-                                    <button type="submit" class="btn-primary" style="padding: 8px 12px; font-size: 0.7rem;">
-                                        SAVE
-                                    </button>
+                                <td style="font-weight: bold; color: var(--primary);">{{ s.ID }}</td>
+                                <td style="font-size: 0.8rem;">{{ s.Name }}</td>
+                                <td><input type="number" name="new_group" value="{{ s.Assigned_Group }}"></td>
+                                <td><input type="text" name="new_dept" value="{{ s.Department }}"></td>
+                                <td><button type="submit" style="background: none; border: none; color: var(--primary); cursor: pointer;"><i class="fa-solid fa-floppy-disk"></i></button></td>
+                                <td style="text-align: center;">
+                                    <a href="/delete_student/{{ s.ID }}" class="btn-del" onclick="return confirm('Delete {{ s.Name }}?')"><i class="fa-solid fa-trash-can"></i></a>
                                 </td>
                             </form>
                         </tr>
@@ -107,18 +79,13 @@
     </div>
 
     <script>
-        // Real-time Search Filter
-        document.getElementById('studentSearch').addEventListener('keyup', function() {
+        document.getElementById('adminSearch').addEventListener('keyup', function() {
             let filter = this.value.toUpperCase();
-            let rows = document.getElementById('studentTable').getElementsByTagName('tr');
-            
+            let rows = document.getElementById('adminTableBody').getElementsByTagName('tr');
             for (let i = 0; i < rows.length; i++) {
-                let idCol = rows[i].getElementsByTagName('td')[0];
-                let nameCol = rows[i].getElementsByTagName('td')[1];
-                if (idCol || nameCol) {
-                    let textValue = (idCol.textContent || idCol.innerText) + " " + (nameCol.textContent || nameCol.innerText);
-                    rows[i].style.display = textValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
-                }
+                let id = rows[i].getElementsByTagName('td')[0].innerText;
+                let name = rows[i].getElementsByTagName('td')[1].innerText;
+                rows[i].style.display = (id.toUpperCase().includes(filter) || name.toUpperCase().includes(filter)) ? "" : "none";
             }
         });
     </script>
