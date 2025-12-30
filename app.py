@@ -99,14 +99,24 @@ def add_student():
 @app.route('/mark_attendance/<int:group_no>', methods=['GET', 'POST'])
 def mark_attendance(group_no):
     if 'faculty' not in session: return redirect(url_for('login'))
-    data = df_students[df_students['Assigned_Group'] == group_no].sort_values('ID').to_dict('records')
+    
+    # FETCH LIVE FROM FIRESTORE (instead of CSV)
+    docs = db.collection('students').where('Assigned_Group', '==', group_no).stream()
+    data = [d.to_dict() for d in docs]
+    data = sorted(data, key=lambda x: x['ID']) # Keep it sorted
+    
     if request.method == 'POST': return save_data_logic(data, f"Group {group_no}", "Engagement")
     return render_template('mark_attendance.html', students=data, title=f"Group {group_no}")
 
 @app.route('/mark_dept_attendance/<dept_name>', methods=['GET', 'POST'])
 def mark_dept_attendance(dept_name):
     if 'faculty' not in session: return redirect(url_for('login'))
-    data = df_students[df_students['Department'] == dept_name].sort_values('ID').to_dict('records')
+    
+    # FETCH LIVE FROM FIRESTORE (instead of CSV)
+    docs = db.collection('students').where('Department', '==', dept_name).stream()
+    data = [d.to_dict() for d in docs]
+    data = sorted(data, key=lambda x: x['ID']) # Keep it sorted
+    
     if request.method == 'POST': return save_data_logic(data, dept_name, "Academic")
     return render_template('mark_attendance.html', students=data, title=f"{dept_name} Dept")
 
