@@ -14,6 +14,11 @@
             <span style="font-size: 0.8rem; color: var(--text-dim);">{{ faculty }}</span>
             <a href="/logout" style="color: var(--error); text-decoration: none; font-weight: 700; font-size: 0.8rem;">LOGOUT</a>
         </div>
+        {% if faculty == "Mr. Chaitany Thakar" %}
+<a href="/admin" class="btn-primary" style="background: linear-gradient(135deg, #f39c12, #e67e22); color: #000; margin-right: 10px;">
+    <i class="fa-solid fa-user-gear"></i> ADMIN PANEL
+</a>
+{% endif %}
     </nav>
     <div class="container">
         <div class="card" style="margin-bottom: 30px;">
